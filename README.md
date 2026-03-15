@@ -13,8 +13,10 @@
 [![Bash Built](https://img.shields.io/badge/Bash_Script-4EAA25?style=for-the-badge&logo=gnu-bash&logoColor=white)](#)
 [![Redis/Valkey](https://img.shields.io/badge/Valkey_Limiter-DC382D?style=for-the-badge&logo=redis&logoColor=white)](#)
 
-### Officially Supported OS
+### Primary Supported OS
 [![AlmaLinux](https://img.shields.io/badge/AlmaLinux-100000?style=for-the-badge&logo=almalinux&logoColor=white)](#)
+
+### Broad Compatibility
 [![RHEL](https://img.shields.io/badge/RHEL-CC0000?style=for-the-badge&logo=redhat&logoColor=white)](#)
 [![Fedora](https://img.shields.io/badge/Fedora-51A2DA?style=for-the-badge&logo=fedora&logoColor=white)](#)
 [![Ubuntu](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)](#)
