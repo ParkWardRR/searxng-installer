@@ -2,10 +2,24 @@
 
 # 🕵️ SearXNG Quadlet Installer
 
-[![Podman](https://img.shields.io/badge/Podman-Rootless-892CA0?style=for-the-badge&logo=podman&logoColor=white)](#)
-[![Systemd](https://img.shields.io/badge/Systemd-Quadlet-4CAF50?style=for-the-badge&logo=linux&logoColor=white)](#)
-[![WireGuard](https://img.shields.io/badge/WireGuard-VPN_Encrypted-881798?style=for-the-badge&logo=wireguard&logoColor=white)](#)
-[![Bash Built](https://img.shields.io/badge/Built_With-Bash-4EAA25?style=for-the-badge&logo=gnu-bash&logoColor=white)](#)
+[![License: Blue Oak 1.0.0](https://img.shields.io/badge/License-Blue_Oak_1.0.0-blue.svg)](https://blueoakcouncil.org/license/1.0.0)
+[![Status: Production](https://img.shields.io/badge/Status-Production_Ready-success)](#)
+[![Security: Rootless](https://img.shields.io/badge/Security-100%25_Rootless-critical)](#)
+
+### Architecture
+[![Podman](https://img.shields.io/badge/Podman-892CA0?style=for-the-badge&logo=podman&logoColor=white)](#)
+[![Systemd](https://img.shields.io/badge/Systemd_Quadlet-4CAF50?style=for-the-badge&logo=linux&logoColor=white)](#)
+[![WireGuard](https://img.shields.io/badge/WireGuard_VPN-881798?style=for-the-badge&logo=wireguard&logoColor=white)](#)
+[![Bash Built](https://img.shields.io/badge/Bash_Script-4EAA25?style=for-the-badge&logo=gnu-bash&logoColor=white)](#)
+[![Redis/Valkey](https://img.shields.io/badge/Valkey_Limiter-DC382D?style=for-the-badge&logo=redis&logoColor=white)](#)
+
+### Officially Supported OS
+[![AlmaLinux](https://img.shields.io/badge/AlmaLinux-100000?style=for-the-badge&logo=almalinux&logoColor=white)](#)
+[![RHEL](https://img.shields.io/badge/RHEL-CC0000?style=for-the-badge&logo=redhat&logoColor=white)](#)
+[![Fedora](https://img.shields.io/badge/Fedora-51A2DA?style=for-the-badge&logo=fedora&logoColor=white)](#)
+[![Ubuntu](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)](#)
+[![Debian](https://img.shields.io/badge/Debian-A81D33?style=for-the-badge&logo=debian&logoColor=white)](#)
+[![Arch Linux](https://img.shields.io/badge/Arch_Linux-1793D1?style=for-the-badge&logo=arch-linux&logoColor=white)](#)
 
 *An advanced, 100% rootless, containerized deployment script for SearXNG.*
 
@@ -13,7 +27,7 @@
 
 ## What is this?
 
-### ELI15 (Explain Like I'm 15)
+### The Basics
 So, you want to stop Google from tracking everything you search for? Setting up your own search engine (SearXNG) is awesome, but it comes with two massive headaches:
 1. **You'll get banned by Google.** If you just spin up a cloud server and start scraping results, Google and Bing see 1,000 searches coming from a single datacenter IP, hit you with endless Cloudflare CAPTCHAs, and eventually block your server's IP entirely.
 2. **Hackers.** If someone hacks your search engine container, you don't want them getting `root` access to your entire server.
@@ -97,8 +111,8 @@ rm -rf ~/searxng
 ```
 
 ## OS Compatibility Support
-Tested on: **AlmaLinux 10.1 (Heliotrope Lion)**
-Packager Managers Supported: `dnf`, `apt`, `pacman` (RHEL, Debian, Ubuntu, Fedora, Arch Linux).
+**Primary Focus:** Built and thoroughly tested for **AlmaLinux 10.1 (Heliotrope Lion)**.
+*Other Supported Distributions:* By detecting the host package manager, `dnf`, `apt`, and `pacman` environments (RHEL, Fedora, Debian, Ubuntu, Arch Linux) should also deploy successfully.
 > *Note: If you run an older OS with Podman versions earlier than 4.4, the script automatically dynamically falls back to generating Classic SystemD units to preserve compatibility!*
 
 ---
