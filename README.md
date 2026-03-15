@@ -11,22 +11,23 @@
 
 </div>
 
-## What is this? (Explained for the 15-year old IT Pro)
+## What is this?
 
-Alright, check it out. When you run a search engine yourself to avoid Google harvesting your data, you run into two massive problems: 
-1. **Security:** You do not want containers running as `root` bridging into your network. It's a massive attack vector.
-2. **IP Blocks:** If you ping Google, Bing, and Yahoo via API concurrently, they will instantly recognize you are scraping them from a datacenter IP, hit you with endless Cloudflare Captchas, and perma-ban your VPS.
+### ELI15 (Explain Like I'm 15)
+So, you want to stop Google from tracking everything you search for? Setting up your own search engine (SearXNG) is awesome, but it comes with two massive headaches:
+1. **You'll get banned by Google.** If you just spin up a cloud server and start scraping results, Google and Bing see 1,000 searches coming from a single datacenter IP, hit you with endless Cloudflare CAPTCHAs, and eventually block your server's IP entirely.
+2. **Hackers.** If someone hacks your search engine container, you don't want them getting `root` access to your entire server.
 
-**This script solves both.**
+**This script fixes both automatically.** It runs your search engine inside **Podman** (like Docker, but secure because it doesn't need root admin rights). More importantly, it attaches a **Mullvad VPN Sidecar** to your search engine. Every time your server asks Google for a search result, it routes that request through a VPN tunnel first. Google thinks you're just some random person on a Mullvad exit node, never sees your server's real IP, and leaves you alone. Finally, it slaps a **Valkey bouncer** on the front door to block other people's bots from spamming your new search engine. ONE command, and you get all of this.
 
-It deploys **SearXNG** automatically using **Podman Quadlets**. Quadlets are the absolute bleeding edge of container tech—they completely replace bloated `docker-compose.yml` files by letting the native Linux `systemd` supervisor manage the containers directly in the kernel! Better yet? It runs entirely **rootless** in user space. There is no root daemon, zero root privileges, and zero chance a container exploit owns your hypervisor.
+---
 
-Beyond the security architecture, this script injects two incredibly powerful sidecars to SearXNG automatically:
+### For the IT Pro
+This is a fully automated, idempotent bash deployment script for SearXNG that utilizes modern **systemd Quadlets** and **Rootless Podman** on RHEL/Debian/Arch based systems. 
 
-*   **Valkey (Rate Limiting):** A modern fork of Redis acting as a high-speed memory cache. It sits in front of your SearXNG instance as a bouncer, actively rate-limiting web scrapers so they can't DDoS your search endpoint.
-*   **Gluetun (VPN Proxy):** This is the magic. It spins up a WireGuard tunnel inside a detached container network, and dynamically modifies SearXNG's `settings.yml` to force *all* outgoing queries through the VPN tunnel (like Mullvad). This completely masks your server's IP address, bypassing upstream CAPTCHA blocks instantly.
+Bloated `docker-compose.yml` stacks running under a high-privilege docker daemon are an unnecessary attack vector. This script replaces that paradigm. It natively instructs systemd (via `.container` Quadlet files) to manage the lifecycle of a rootless Podman overlay network in userspace. 
 
-You get an enterprise-grade, encrypted, untrackable search cluster in executing a single `.sh` file.
+To solve upstream scraping bans (Google/Bing IP blocking), the script provisions an encrypted **WireGuard VPN sidecar (`gluetun`)** attached to the same network overlay. The script securely dynamically injects proxy routing rules directly into SearXNG's `settings.yml` to force all egress HTTP scraper traffic through the VPN `tun` device, effectively masking your bare-metal hypervisor's public IP. Incoming ingress is protected by **Valkey**, which operates as a high-speed memory cache and token-bucket rate limiter to mitigate layer 7 DDoS floods.
 
 ---
 
