@@ -1,0 +1,13 @@
+# Ignore sensitive files or logs
+*.log
+*.pem
+*.key
+*.tar.gz
+*.zip
+.DS_Store
+
+# Ignore generated config mounts if tested locally
+settings/
+caddy-data/
+caddy-config/
+valkey-data/
