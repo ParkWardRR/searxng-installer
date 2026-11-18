@@ -44,6 +44,10 @@
 # VPN_TYPE           Protocol to use (Default: wireguard)
 # WIREGUARD_PRIVATE_KEY Cryptographically paired key from provider
 # WIREGUARD_ADDRESSES   Internal IP bonded to your key (e.g. 10.x.x.x/32)
+# VPN_SERVER_CITIES  Pin the exit city, e.g. "Los Angeles CA" (Default: any)
+#                    Some engines block specific VPN exit IPs, so pinning a
+#                    known-good exit is often the difference between results
+#                    and a page of "too many requests".
 #
 # ------------------------------------------------------------------------------
 #  💻 USAGE & UNINSTALL
@@ -83,6 +87,13 @@ VPN_PROVIDER="${VPN_PROVIDER:-mullvad}"
 WIREGUARD_PRIVATE_KEY="${WIREGUARD_PRIVATE_KEY:-YOUR_PRIVATE_KEY_HERE}"
 WIREGUARD_ADDRESSES="${WIREGUARD_ADDRESSES:-10.x.x.x/32}"
 GLUETUN_IMAGE="${GLUETUN_IMAGE:-docker.io/qmcgaw/gluetun:latest}"
+# Pin the exit location. This matters more than it looks: several engines
+# (brave and qwant among them) block individual VPN exit IPs, so an
+# unpinned gluetun can land on a blocked exit and half the engines return
+# "too many requests" / "access denied" with nothing wrong in the config.
+# Comma-separated, and the names must match gluetun's own list for the
+# provider, e.g. "Los Angeles CA". Empty = let gluetun choose.
+VPN_SERVER_CITIES="${VPN_SERVER_CITIES:-}"
 
 # ─── Console Formatting ─────────────────────────────────────────────────────
 BOLD='\033[1m'
@@ -380,6 +391,13 @@ EOF
 
     # ── Gluetun / VPN Quadlet ──
     if [ "$ENABLE_VPN" = "true" ]; then
+        # Leading newline so this appends as its own unit line when set, and
+        # collapses to nothing when empty (rather than leaving a stray blank).
+        # Quoted: systemd splits Environment= on whitespace, so an unquoted
+        # "Los Angeles CA" becomes three bogus assignments and gluetun exits.
+        local CITIES_ENV=""
+        [ -n "$VPN_SERVER_CITIES" ] && CITIES_ENV="
+Environment=\"SERVER_CITIES=${VPN_SERVER_CITIES}\""
         cat > "${QUADLET_DIR}/gluetun.container" <<EOF
 [Unit]
 Description=Gluetun VPN Sidecar
@@ -397,7 +415,7 @@ Environment=VPN_SERVICE_PROVIDER=${VPN_PROVIDER}
 Environment=VPN_TYPE=${VPN_TYPE}
 Environment=WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
 Environment=WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES}
-Environment=HTTPPROXY=on
+Environment=HTTPPROXY=on${CITIES_ENV}
 HealthCmd=wget -qO- https://ifconfig.me/ip || exit 1
 HealthInterval=30s
 HealthRetries=3
@@ -413,9 +431,16 @@ EOF
     fi
 
     # ── SearXNG Quadlet ──
-    local VOLUMES="-v ${SEARXNG_DIR}/settings/settings.yml:/etc/searxng/settings.yml:Z"
+    # Quadlet .container files are systemd unit files: every line must be a
+    # key-value pair. The `-v src:dst` podman-run CLI form belongs only to
+    # setup_classic_systemd (see EXTRA_VOLUMES below); emitting it here makes
+    # the generator reject the file with "which is not a key-value pair", and
+    # because one bad file aborts the whole run, NONE of the units get
+    # generated — the containers silently never start.
+    local VOLUMES="Volume=${SEARXNG_DIR}/settings/settings.yml:/etc/searxng/settings.yml:Z"
     if [ "$ENABLE_VALKEY" = "true" ] && [ -f "${SEARXNG_DIR}/settings/limiter.toml" ]; then
-        VOLUMES="${VOLUMES} -v ${SEARXNG_DIR}/settings/limiter.toml:/etc/searxng/limiter.toml:Z"
+        VOLUMES="${VOLUMES}
+Volume=${SEARXNG_DIR}/settings/limiter.toml:/etc/searxng/limiter.toml:Z"
     fi
 
     local AFTER_UNIT=""
@@ -551,6 +576,11 @@ EOF
 
     # ── Gluetun / VPN service ──
     if [ "$ENABLE_VPN" = "true" ]; then
+        # Quoted so a city name with a space ("Los Angeles CA") survives as a
+        # single argument. Empty expands to nothing, leaving a bare "\" line
+        # that podman ignores.
+        local CITIES_ARG=""
+        [ -n "$VPN_SERVER_CITIES" ] && CITIES_ARG="-e SERVER_CITIES=\"${VPN_SERVER_CITIES}\""
         cat > "${SVC_DIR}/gluetun.service" <<EOF
 [Unit]
 Description=Gluetun VPN Sidecar
@@ -571,6 +601,7 @@ ExecStart=/usr/bin/podman run --name gluetun --rm \\
     -e WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY} \\
     -e WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES} \\
     -e HTTPPROXY=on \\
+    ${CITIES_ARG} \\
     --health-cmd "wget -qO- https://ifconfig.me/ip || exit 1" \\
     --health-interval 30s \\
     ${GLUETUN_IMAGE}
@@ -674,7 +705,15 @@ start_services() {
     local retries=10
     while ! systemctl --user list-unit-files | grep -q searxng.service; do
         if [ "$retries" -le 0 ]; then
-            log_warn "Quadlet generation timeout. Proceeding and hoping for the best..."
+            log_warn "Quadlet generation timeout — no searxng.service was generated."
+            # Don't proceed blind: a single malformed .container aborts the whole
+            # generator run, so every unit goes missing and the only clue is
+            # buried in the generator's own stderr. Surface it here.
+            if [ -x /usr/libexec/podman/quadlet ]; then
+                log_warn "Generator diagnostics:"
+                /usr/libexec/podman/quadlet -dryrun -user 2>&1 \
+                    | grep -iE "error|warn" | sed 's/^/    /' || true
+            fi
             break
         fi
         sleep 1
